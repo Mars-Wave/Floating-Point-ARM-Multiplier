@@ -1,0 +1,169 @@
+
+FPmul.elf:     file format elf32-littlearm
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .bss          00000004  0c100000  0c100000  00008000  2**0
+                  ALLOC
+  1 .text         0000010c  0c100004  0c100004  00008004  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  2 .ARM.attributes 00000022  00000000  00000000  00008110  2**0
+                  CONTENTS, READONLY
+  3 .debug_line   00000073  00000000  00000000  00008132  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  4 .debug_info   00000077  00000000  00000000  000081a5  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  5 .debug_abbrev 00000014  00000000  00000000  0000821c  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  6 .debug_aranges 00000020  00000000  00000000  00008230  2**3
+                  CONTENTS, READONLY, DEBUGGING
+
+Disassembly of section .text:
+
+0c100004 <start>:
+
+.text
+
+start:
+
+	ldr r0, =X //first operand in r0
+ c100004:	e59f00e4 	ldr	r0, [pc, #228]	; c1000f0 <end+0x4>
+	ldr r1, =Y //second operand in r0
+ c100008:	e59f10e4 	ldr	r1, [pc, #228]	; c1000f4 <end+0x8>
+	ldr r2, =mmask
+ c10000c:	e59f20e4 	ldr	r2, [pc, #228]	; c1000f8 <end+0xc>
+	and r3, r0, r2
+ c100010:	e0003002 	and	r3, r0, r2
+	and r4, r1, r2 //mantissas in r3, r4
+ c100014:	e0014002 	and	r4, r1, r2
+	ldr r2, =normalizer
+ c100018:	e3a02502 	mov	r2, #8388608	; 0x800000
+	orr r3, r3, r2
+ c10001c:	e1833002 	orr	r3, r3, r2
+	orr r4, r4, r2 //normalize mantissas
+ c100020:	e1844002 	orr	r4, r4, r2
+	umull r5, r6, r3, r4
+ c100024:	e0865493 	umull	r5, r6, r3, r4
+	ldr r2, =specificbit
+ c100028:	e3a02902 	mov	r2, #32768	; 0x8000
+	and r10, r6, r2
+ c10002c:	e006a002 	and	sl, r6, r2
+	cmp r10, #0
+ c100030:	e35a0000 	cmp	sl, #0
+	bgt do_15_8
+ c100034:	ca000007 	bgt	c100058 <do_15_8>
+	ldr r2, =ninebits  //take 9 most significant bits of umulled 1st reg
+ c100038:	e59f20bc 	ldr	r2, [pc, #188]	; c1000fc <end+0x10>
+	and r5, r2, r5
+ c10003c:	e0025005 	and	r5, r2, r5
+	ldr r2, =fourteenbits //take 14 least significant bits of umulled 2nd reg
+ c100040:	e59f20b8 	ldr	r2, [pc, #184]	; c100100 <end+0x14>
+	and r6, r2, r6
+ c100044:	e0026006 	and	r6, r2, r6
+	lsr r5, r5, #23 //put 9 bits on the right
+ c100048:	e1a05ba5 	lsr	r5, r5, #23
+	lsl r6, r6, #9 //put 14 bits on the left
+ c10004c:	e1a06486 	lsl	r6, r6, #9
+	mov r9, #0 //did 14-9
+ c100050:	e3a09000 	mov	r9, #0
+	b assemble_mantissa
+ c100054:	ea000006 	b	c100074 <assemble_mantissa>
+
+0c100058 <do_15_8>:
+do_15_8:
+	ldr r2, =eightbits  //take 8 most significant bits of umulled 1st reg
+ c100058:	e3a024ff 	mov	r2, #-16777216	; 0xff000000
+	and r5, r2, r5
+ c10005c:	e0025005 	and	r5, r2, r5
+	ldr r2, =fifteenbits //take 15 least significant bits of umulled 2nd reg
+ c100060:	e59f209c 	ldr	r2, [pc, #156]	; c100104 <end+0x18>
+	and r6, r2, r6
+ c100064:	e0026006 	and	r6, r2, r6
+	lsr r5, r5, #24 //put 8 bits on the right
+ c100068:	e1a05c25 	lsr	r5, r5, #24
+	lsl r6, r6, #8 //put 15 bits on the left
+ c10006c:	e1a06406 	lsl	r6, r6, #8
+	mov r9, #1 //did 15-8
+ c100070:	e3a09001 	mov	r9, #1
+
+0c100074 <assemble_mantissa>:
+assemble_mantissa:
+	orr r6, r6, r5 //fully multiplied mantissa in r6
+ c100074:	e1866005 	orr	r6, r6, r5
+	ldr r2, =smask
+ c100078:	e3a02102 	mov	r2, #-2147483648	; 0x80000000
+	and r3, r0, r2
+ c10007c:	e0003002 	and	r3, r0, r2
+	and r4, r1, r2
+ c100080:	e0014002 	and	r4, r1, r2
+	mov r5, #1  //sign in r5 "if" not_equal skips #0
+ c100084:	e3a05001 	mov	r5, #1
+	cmp r3, r4	//decide sign
+ c100088:	e1530004 	cmp	r3, r4
+	bne not_equal
+ c10008c:	1a000000 	bne	c100094 <not_equal>
+	mov r5, #0	//sign in r5 accessed if signs they are equal
+ c100090:	e3a05000 	mov	r5, #0
+
+0c100094 <not_equal>:
+not_equal:
+	lsl r5, #31 //shift to sign position
+ c100094:	e1a05f85 	lsl	r5, r5, #31
+	ldr r2, =emask
+ c100098:	e59f2068 	ldr	r2, [pc, #104]	; c100108 <end+0x1c>
+	and r0, r2, r0
+ c10009c:	e0020000 	and	r0, r2, r0
+	and r1, r2, r1	//exponents in r0, r1
+ c1000a0:	e0021001 	and	r1, r2, r1
+	lsr r0, r0, #23
+ c1000a4:	e1a00ba0 	lsr	r0, r0, #23
+	lsr r1, r1, #23 //shift right for sum
+ c1000a8:	e1a01ba1 	lsr	r1, r1, #23
+	add r0, r1, r0  //unbiased sum in r0
+ c1000ac:	e0810000 	add	r0, r1, r0
+	ldr r2, =exponentcleaner
+ c1000b0:	e3a020ff 	mov	r2, #255	; 0xff
+	and r0, r2, r0  //clean result
+ c1000b4:	e0020000 	and	r0, r2, r0
+	ldr r2, =onetwoseven
+ c1000b8:	e3a02081 	mov	r2, #129	; 0x81
+	add r0, r0, r2 //unbiased sum -127
+ c1000bc:	e0800002 	add	r0, r0, r2
+	ldr r2, =exponentcleaner
+ c1000c0:	e3a020ff 	mov	r2, #255	; 0xff
+	and r0, r2, r0  //clean result again
+ c1000c4:	e0020000 	and	r0, r2, r0
+	cmp r9,#1
+ c1000c8:	e3590001 	cmp	r9, #1
+	blo did_14_8
+ c1000cc:	3a000000 	bcc	c1000d4 <did_14_8>
+	add r0, r0, #1 //compensate for doing 15-8
+ c1000d0:	e2800001 	add	r0, r0, #1
+
+0c1000d4 <did_14_8>:
+did_14_8:
+	lsl r0, #23 //shift to exponent position
+ c1000d4:	e1a00b80 	lsl	r0, r0, #23
+	orr r10, r0, r5
+ c1000d8:	e180a005 	orr	sl, r0, r5
+	orr r10, r10, r6 //result is in r10 in this step
+ c1000dc:	e18aa006 	orr	sl, sl, r6
+	ldr r0, =result
+ c1000e0:	e59f0024 	ldr	r0, [pc, #36]	; c10010c <end+0x20>
+	str r10, [r0] //result stored in result space
+ c1000e4:	e580a000 	str	sl, [r0]
+	b end;
+ c1000e8:	eaffffff 	b	c1000ec <end>
+
+0c1000ec <end>:
+
+end: b end;
+ c1000ec:	eafffffe 	b	c1000ec <end>
+ c1000f0:	c1680000 	.word	0xc1680000
+ c1000f4:	bec00000 	.word	0xbec00000
+ c1000f8:	007fffff 	.word	0x007fffff
+ c1000fc:	ff800000 	.word	0xff800000
+ c100100:	00003fff 	.word	0x00003fff
+ c100104:	00007fff 	.word	0x00007fff
+ c100108:	7f800000 	.word	0x7f800000
+ c10010c:	0c100000 	.word	0x0c100000
