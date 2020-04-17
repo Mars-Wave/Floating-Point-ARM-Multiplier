@@ -9,7 +9,7 @@
 
 .data
 /*
-Checked examples:
+examples:
 
 1)
 	A = 1 10000011 00100000000000000000000
